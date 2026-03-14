@@ -161,7 +161,7 @@ wizard() {
 # ─── Run ──────────────────────────────────────────────────────────────────────
 
 run_setup() {
-  export MAIN_USER SSH_PORT GITHUB_USER TAILSCALE_AUTH_KEY
+  export MAIN_USER SSH_PORT GITHUB_USER TAILSCALE_AUTH_KEY LIB
 
   # Core (always)
   run_module "User + SSH hardening"     "$CORE/user.sh"

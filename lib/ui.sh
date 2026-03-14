@@ -56,7 +56,7 @@ run_module() {
   local label="$1"
   local script="$2"
 
-  if gum spin --title "  $label..." -- bash "$script"; then
+  if gum spin --title "  $label..." -- bash -c "source '$LIB/util.sh'; source '$script'"; then
     RESULTS+=("$(printf "${GREEN}✓${RESET} %s" "$label")")
   else
     local exit_code=$?
@@ -67,7 +67,7 @@ run_module() {
       --border rounded --padding "1 2" --border-foreground 196 \
       "$(gum style --foreground 196 --bold "✗ $label failed (exit $exit_code)")" \
       "" \
-      "$(bash "$script" 2>&1 | tail -10 | while IFS= read -r line; do printf "  %s\n" "$line"; done)"
+      "$(bash -c "source '$LIB/util.sh'; source '$script'" 2>&1 | tail -10 | while IFS= read -r line; do printf "  %s\n" "$line"; done)"
     echo ""
     gum confirm "Continue anyway?" || exit 1
   fi
