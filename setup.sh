@@ -15,18 +15,20 @@ source "$LIB/util.sh"
 # ─── Preflight ────────────────────────────────────────────────────────────────
 
 preflight() {
-  header
-
-  # Must run as root
+  # Must run as root (before any TUI)
   if [[ $EUID -ne 0 ]]; then
-    die "Run as root: sudo bash setup.sh"
+    echo "Run as root: sudo bash setup.sh"
+    exit 1
   fi
 
-  step "Checking gum..."
+  # Install gum before calling header (header requires gum)
   if ! command -v gum &>/dev/null; then
-    info "Installing gum..."
+    echo "  Installing gum..."
     install_gum
   fi
+
+  header
+
   ok "gum"
 
   step "Checking Doppler..."
