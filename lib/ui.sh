@@ -15,16 +15,13 @@ FAILED=false
 header() {
   clear
   echo ""
-  printf "${CYAN}"
-  printf "      ▄▄   ▄▄     \n"
-  printf "     ▐████████▌    \n"
-  printf "    ▐██▀▄▄▄▀██▌    \n"
-  printf "   ▗████   ████▖   \n"
-  printf "   ▐▘ ▝▀███▀▝ ▝▌   \n"
-  printf "       ▌   ▌       \n"
-  printf "${RESET}"
-  echo ""
-  printf "  ${BOLD}infra-kit${RESET}  ${DIM}—  server bootstrap${RESET}\n"
+  gum style \
+    --border double \
+    --border-foreground 39 \
+    --padding "1 4" \
+    --align center \
+    "$(gum style --foreground 39 --bold '⚙  infra-kit')" \
+    "$(gum style --foreground 244 'VPS bootstrap wizard')"
   echo ""
 }
 
