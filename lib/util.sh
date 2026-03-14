@@ -1,28 +1,15 @@
 #!/usr/bin/env bash
 # lib/util.sh — utility helpers
 
-# Install gum (charmbracelet) from GitHub releases
+# Install gum (charmbracelet) via official apt repo
 install_gum() {
-  local os arch pkg_url
-  os="linux"
-  arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
-
-  # Map arch names
-  case "$arch" in
-    x86_64|amd64) arch="amd64" ;;
-    aarch64|arm64) arch="arm64" ;;
-    armv7l) arch="armv7" ;;
-    *) die "Unsupported architecture: $arch" ;;
-  esac
-
-  local version
-  version=$(curl -s https://api.github.com/repos/charmbracelet/gum/releases/latest \
-    | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/')
-
-  pkg_url="https://github.com/charmbracelet/gum/releases/download/v${version}/gum_${version}_${os}_${arch}.tar.gz"
-
-  curl -sL "$pkg_url" | tar -xz -C /usr/local/bin gum
-  chmod +x /usr/local/bin/gum
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://repo.charm.sh/apt/gpg.key \
+    | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
+    | tee /etc/apt/sources.list.d/charm.list > /dev/null
+  apt-get update -qq
+  apt-get install -y -qq gum
 }
 
 # Check if a module has already run (idempotency marker)
