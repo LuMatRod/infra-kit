@@ -6,14 +6,22 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Auto-wrap in tmux to survive SSH disconnections
+# Warn if not inside tmux
 if [[ -z "${TMUX:-}" ]]; then
-  if command -v tmux &>/dev/null; then
-    exec tmux new-session -s infra-kit "bash $0 $*"
-  else
+  if ! command -v tmux &>/dev/null; then
     apt-get install -y -qq tmux &>/dev/null
-    exec tmux new-session -s infra-kit "bash $0 $*"
   fi
+  echo ""
+  echo "  Run inside tmux to survive SSH disconnects:"
+  echo ""
+  echo "    tmux new-session -s infra-kit"
+  echo "    bash setup.sh"
+  echo ""
+  echo "  Or to resume after disconnect:"
+  echo "    tmux attach -t infra-kit"
+  echo ""
+  read -rp "  Continue anyway? [y/N] " confirm
+  [[ "$confirm" =~ ^[Yy]$ ]] || exit 0
 fi
 LIB="$SCRIPT_DIR/lib"
 CORE="$SCRIPT_DIR/core"
