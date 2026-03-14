@@ -10,7 +10,6 @@ DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
 DOPPLER_SERVICE_TOKEN="${DOPPLER_SERVICE_TOKEN:-}"
 HOME_DIR="/home/$MAIN_USER"
 WORKSPACE_DIR="$HOME_DIR/.openclaw/workspace"
-DEPLOY_KEY_PATH="$HOME_DIR/.ssh/github_deploy"
 
 # Install OpenClaw globally (lands in /usr/bin/openclaw via npm prefix /usr)
 npm install -g openclaw
@@ -22,22 +21,7 @@ chown "$MAIN_USER:$MAIN_USER" "$HOME_DIR/.openclaw"
 
 if [[ "$WORKSPACE_MODE" == "Clone existing repo" && -n "$WORKSPACE_REPO" ]]; then
   if [[ ! -d "$WORKSPACE_DIR" ]]; then
-    # Generate a deploy key for vini to authenticate to GitHub
-    if [[ ! -f "$DEPLOY_KEY_PATH" ]]; then
-      sudo -u "$MAIN_USER" ssh-keygen -t ed25519 -C "openclaw@$(hostname)" \
-        -f "$DEPLOY_KEY_PATH" -N ""
-      # Configure SSH to use deploy key for GitHub
-      sudo -u "$MAIN_USER" bash -c "cat >> ~/.ssh/config << 'EOF'
-Host github.com
-  IdentityFile ~/.ssh/github_deploy
-  StrictHostKeyChecking accept-new
-EOF"
-    fi
-    # Export public key so summary can display it
-    export DEPLOY_KEY_PUB
-    DEPLOY_KEY_PUB=$(cat "${DEPLOY_KEY_PATH}.pub")
-
-    # Clone as vini using the deploy key
+    # Deploy key was already generated + confirmed in openclaw-key.sh
     sudo -u "$MAIN_USER" git clone "$WORKSPACE_REPO" "$WORKSPACE_DIR"
   fi
 else

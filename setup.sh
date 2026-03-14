@@ -252,6 +252,7 @@ run_setup() {
     run_module "Caddy"                  "$MODULES/caddy.sh"
   fi
   if echo "$SELECTED_MODULES" | grep -q "OpenClaw"; then
+    run_interactive "OpenClaw deploy key" "$MODULES/openclaw-key.sh"
     run_module "OpenClaw"               "$MODULES/openclaw.sh"
   fi
 

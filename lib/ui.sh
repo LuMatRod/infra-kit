@@ -48,6 +48,24 @@ die() {
   exit 1
 }
 
+# Run an interactive module (no spinner — for steps needing user input)
+run_interactive() {
+  local label="$1"
+  local script="$2"
+
+  echo ""
+  gum style --bold "  → $label"
+  echo ""
+
+  if bash -c "source '$LIB/util.sh'; source '$script'"; then
+    RESULTS+=("$(printf "${GREEN}✓${RESET} %s" "$label")")
+  else
+    RESULTS+=("$(printf "${RED}✗${RESET} %s" "$label")")
+    FAILED=true
+    gum confirm "Continue anyway?" || exit 1
+  fi
+}
+
 # Run a module with a gum spinner; capture result
 run_module() {
   local label="$1"
