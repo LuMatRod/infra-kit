@@ -158,18 +158,18 @@ wizard() {
       --value "prd")
 
     # Service token for the systemd unit (runs as vini, not root)
-    DOPPLER_SERVICE_TOKEN=$(doppler secrets get OPENCLAW_SERVICE_TOKEN \
+    DOPPLER_SERVICE_TOKEN=$(doppler secrets get OPENCLAW_DOPPLER_TOKEN \
       --project infra-kit --config prd --plain 2>/dev/null || true)
     if [[ -z "$DOPPLER_SERVICE_TOKEN" ]]; then
       gum style --foreground 214 \
-        "  No OPENCLAW_SERVICE_TOKEN in Doppler infra-kit." \
+        "  No OPENCLAW_DOPPLER_TOKEN in Doppler infra-kit." \
         "  The openclaw service needs a Doppler service token to run as $MAIN_USER." \
         "  Generate one at: console.doppler.com → $DOPPLER_PROJECT → Access → Service Tokens"
       DOPPLER_SERVICE_TOKEN=$(gum input \
         --password \
         --prompt "  Doppler service token → ")
     else
-      ok "OPENCLAW_SERVICE_TOKEN"
+      ok "OPENCLAW_DOPPLER_TOKEN"
     fi
 
     echo ""
