@@ -316,15 +316,9 @@ summary() {
 
   if echo "$SELECTED_MODULES" | grep -q "OpenClaw"; then
     echo ""
-    if [[ -n "$DEPLOY_KEY_PUB" ]]; then
-      gum style --foreground 214 --bold "  ⚠ Add this deploy key to GitHub before starting OpenClaw:"
-      echo ""
-      echo "  $DEPLOY_KEY_PUB"
-      echo ""
-      gum style --foreground 244 "  github.com → repo → Settings → Deploy keys → Add"
-    fi
     gum style --foreground 244 "  Start:        sudo systemctl start openclaw"
     gum style --foreground 244 "  Logs:         journalctl -u openclaw -f"
+    gum style --foreground 244 "  Auth Claude:  claude setup-token → openclaw models auth paste-token --provider anthropic"
   fi
 
   echo ""
