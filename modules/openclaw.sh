@@ -33,10 +33,13 @@ Wants=tailscaled.service
 Type=simple
 User=$MAIN_USER
 Environment=HOME=$HOME_DIR
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 WorkingDirectory=$HOME_DIR
-ExecStart=doppler run --project openclaw --config prd -- openclaw gateway start
+ExecStart=/usr/bin/doppler run --project openclaw --config prd -- /usr/bin/openclaw gateway start
 Restart=always
 RestartSec=5
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
@@ -44,8 +47,5 @@ EOF
 
 systemctl daemon-reload
 systemctl enable openclaw
-
-# Set zsh as default shell for MAIN_USER
-chsh -s "$(which zsh)" "$MAIN_USER"
 
 mark_done "openclaw"

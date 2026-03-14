@@ -29,4 +29,7 @@ fi
 
 chown -R "$MAIN_USER:$MAIN_USER" "/home/$MAIN_USER/.ssh"
 
+# Set zsh as default shell
+chsh -s "$(which zsh)" "$MAIN_USER"
+
 mark_done "user"
