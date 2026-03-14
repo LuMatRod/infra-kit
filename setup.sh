@@ -5,6 +5,16 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Auto-wrap in tmux to survive SSH disconnections
+if [[ -z "${TMUX:-}" ]]; then
+  if command -v tmux &>/dev/null; then
+    exec tmux new-session -s infra-kit "bash $0 $*"
+  else
+    apt-get install -y -qq tmux &>/dev/null
+    exec tmux new-session -s infra-kit "bash $0 $*"
+  fi
+fi
 LIB="$SCRIPT_DIR/lib"
 CORE="$SCRIPT_DIR/core"
 MODULES="$SCRIPT_DIR/modules"

@@ -9,7 +9,7 @@ apt-get upgrade -y -qq
 apt-get install -y -qq \
   curl wget git zsh build-essential pkg-config \
   libssl-dev unzip ufw fail2ban ca-certificates gnupg \
-  htop jq rsync
+  htop jq rsync tmux
 
 # Set timezone to UTC (apps handle local conversion)
 timedatectl set-timezone UTC
