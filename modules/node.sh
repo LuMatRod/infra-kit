@@ -9,4 +9,7 @@ fi
 curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
 apt-get install -y -qq nodejs
 
+# pnpm — faster, disk-efficient npm alternative
+npm install -g pnpm
+
 mark_done "node"
