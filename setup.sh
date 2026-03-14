@@ -6,11 +6,23 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Bootstrap: gum + tmux must exist before anything else
+if ! command -v gum &>/dev/null; then
+  echo "  Installing gum..."
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://repo.charm.sh/apt/gpg.key \
+    | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
+    | tee /etc/apt/sources.list.d/charm.list > /dev/null
+  apt-get update -qq && apt-get install -y -qq gum
+fi
+
+if ! command -v tmux &>/dev/null; then
+  apt-get install -y -qq tmux &>/dev/null
+fi
+
 # Warn if not inside tmux
 if [[ -z "${TMUX:-}" ]]; then
-  if ! command -v tmux &>/dev/null; then
-    apt-get install -y -qq tmux &>/dev/null
-  fi
   echo ""
   echo "  Run inside tmux to survive SSH disconnects:"
   echo ""
@@ -39,15 +51,9 @@ preflight() {
     exit 1
   fi
 
-  # Install gum before calling header (header requires gum)
-  if ! command -v gum &>/dev/null; then
-    echo "  Installing gum..."
-    install_gum
-  fi
-
   header
 
-  ok "gum"
+  ok "gum + tmux"
 
   step "Checking Doppler..."
   if ! command -v doppler &>/dev/null; then
