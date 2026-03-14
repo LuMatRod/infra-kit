@@ -84,16 +84,17 @@ wizard() {
 
   echo ""
 
-  # Tailscale auth key from Doppler
-  step "Fetching Tailscale auth key from Doppler..."
+  # Fetch secrets from Doppler (infra-kit project)
+  step "Fetching secrets from Doppler (infra-kit)..."
+
   TAILSCALE_AUTH_KEY=$(doppler secrets get TAILSCALE_AUTH_KEY \
     --project infra-kit --config prd --plain 2>/dev/null || true)
   if [[ -z "$TAILSCALE_AUTH_KEY" ]]; then
     TAILSCALE_AUTH_KEY=$(gum input \
       --password \
-      --prompt "  Tailscale auth key (not found in Doppler) → ")
+      --prompt "  Tailscale auth key (not in Doppler) → ")
   else
-    ok "Tailscale auth key"
+    ok "TAILSCALE_AUTH_KEY"
   fi
 
   echo ""
@@ -123,10 +124,15 @@ wizard() {
 
   echo ""
 
-  # OpenClaw workspace (only if OpenClaw selected)
+  # OpenClaw-specific options
   WORKSPACE_MODE=""
   WORKSPACE_REPO=""
+  DOPPLER_PROJECT="openclaw"
+  DOPPLER_CONFIG="prd"
+  DOPPLER_SERVICE_TOKEN=""
+
   if echo "$SELECTED_MODULES" | grep -q "OpenClaw"; then
+    # Workspace
     WORKSPACE_MODE=$(gum choose \
       --header "OpenClaw workspace:" \
       "Clone existing repo" \
@@ -137,6 +143,35 @@ wizard() {
         --placeholder "git@github.com:LuMatRod/workspace" \
         --prompt "  Workspace repo URL → ")
     fi
+
+    echo ""
+
+    # Doppler project for OpenClaw runtime secrets
+    DOPPLER_PROJECT=$(gum input \
+      --placeholder "openclaw" \
+      --prompt "  Doppler project for OpenClaw → " \
+      --value "openclaw")
+
+    DOPPLER_CONFIG=$(gum input \
+      --placeholder "prd" \
+      --prompt "  Doppler config → " \
+      --value "prd")
+
+    # Service token for the systemd unit (runs as vini, not root)
+    DOPPLER_SERVICE_TOKEN=$(doppler secrets get OPENCLAW_SERVICE_TOKEN \
+      --project infra-kit --config prd --plain 2>/dev/null || true)
+    if [[ -z "$DOPPLER_SERVICE_TOKEN" ]]; then
+      gum style --foreground 214 \
+        "  No OPENCLAW_SERVICE_TOKEN in Doppler infra-kit." \
+        "  The openclaw service needs a Doppler service token to run as $MAIN_USER." \
+        "  Generate one at: console.doppler.com → $DOPPLER_PROJECT → Access → Service Tokens"
+      DOPPLER_SERVICE_TOKEN=$(gum input \
+        --password \
+        --prompt "  Doppler service token → ")
+    else
+      ok "OPENCLAW_SERVICE_TOKEN"
+    fi
+
     echo ""
   fi
 
@@ -151,10 +186,10 @@ wizard() {
     "  GitHub user: $GITHUB_USER" \
     "  Tailscale:   $(mask_key "$TAILSCALE_AUTH_KEY")" \
     "  Modules:     $(echo "$SELECTED_MODULES" | tr '\n' ' ')" \
-    "$(if [[ -n "$WORKSPACE_REPO" ]]; then echo "  Workspace:   $WORKSPACE_REPO"; fi)"
+    "$(if [[ -n "$WORKSPACE_REPO" ]]; then echo "  Workspace:   $WORKSPACE_REPO"; fi)" \
+    "$(if [[ -n "$DOPPLER_PROJECT" ]]; then echo "  Doppler:     $DOPPLER_PROJECT/$DOPPLER_CONFIG"; fi)"
 
   echo ""
-
   gum confirm "Run setup?" || die "Aborted."
 }
 
@@ -162,43 +197,48 @@ wizard() {
 
 run_setup() {
   export MAIN_USER SSH_PORT GITHUB_USER TAILSCALE_AUTH_KEY LIB
+  export WORKSPACE_MODE WORKSPACE_REPO
+  export DOPPLER_PROJECT DOPPLER_CONFIG DOPPLER_SERVICE_TOKEN
 
-  # Core (always)
-  run_module "User + SSH hardening"     "$CORE/user.sh"
-  run_module "SSH hardening"            "$CORE/ssh.sh"
-  run_module "UFW firewall"             "$CORE/firewall.sh"
+  # Core — order matters:
+  # 1. Packages first (apt tools needed by everything else)
+  # 2. Tailscale early (rescue path if SSH goes wrong)
+  # 3. SSH + firewall after Tailscale is up
   run_module "Packages"                 "$CORE/packages.sh"
   run_module "Swap (2GB)"               "$CORE/swap.sh"
   run_module "Unattended upgrades"      "$CORE/upgrades.sh"
   run_module "Tailscale"                "$CORE/tailscale.sh"
+  run_module "User"                     "$CORE/user.sh"
+  run_module "SSH hardening"            "$CORE/ssh.sh"
+  run_module "Firewall"                 "$CORE/firewall.sh"
 
-  # Modules
+  # Modules (selected via wizard)
   if echo "$SELECTED_MODULES" | grep -q "Node.js"; then
-    run_module "Node.js + npm" "$MODULES/node.sh"
-  fi
-  if echo "$SELECTED_MODULES" | grep -q "OpenClaw"; then
-    WORKSPACE_MODE="$WORKSPACE_MODE" WORKSPACE_REPO="$WORKSPACE_REPO" \
-      run_module "OpenClaw" "$MODULES/openclaw.sh"
+    run_module "Node.js + npm"          "$MODULES/node.sh"
   fi
   if echo "$SELECTED_MODULES" | grep -q "Docker"; then
-    run_module "Docker" "$MODULES/docker.sh"
-  fi
-  if echo "$SELECTED_MODULES" | grep -q "Caddy"; then
-    run_module "Caddy" "$MODULES/caddy.sh"
+    run_module "Docker"                 "$MODULES/docker.sh"
   fi
   if echo "$SELECTED_MODULES" | grep -q "Doppler CLI"; then
-    run_module "Doppler CLI" "$MODULES/doppler.sh"
+    run_module "Doppler CLI"            "$MODULES/doppler.sh"
+  fi
+  if echo "$SELECTED_MODULES" | grep -q "Caddy"; then
+    run_module "Caddy"                  "$MODULES/caddy.sh"
+  fi
+  if echo "$SELECTED_MODULES" | grep -q "OpenClaw"; then
+    run_module "OpenClaw"               "$MODULES/openclaw.sh"
   fi
 
   # Verify
-  run_module "Verification" "$SCRIPT_DIR/verify.sh"
+  run_module "Verification"            "$SCRIPT_DIR/verify.sh"
 }
 
 # ─── Summary ──────────────────────────────────────────────────────────────────
 
 summary() {
   echo ""
-  gum style --border rounded --padding "1 2" --bold "Setup complete"
+  gum style --border rounded --padding "1 2" \
+    "$(gum style --bold 'Setup complete')"
   echo ""
 
   for result in "${RESULTS[@]}"; do
@@ -206,13 +246,22 @@ summary() {
   done
 
   echo ""
+  gum style --foreground 244 "  SSH:          ssh -p $SSH_PORT $MAIN_USER@<ip>"
+  gum style --foreground 244 "  Tailscale:    ssh $MAIN_USER@$(hostname)"
 
-  if [[ "$WORKSPACE_MODE" == "Fresh start" ]] || [[ -z "$WORKSPACE_MODE" ]]; then
-    gum style --foreground 244 "  Next: configure OpenClaw via \`openclaw config\`"
+  if echo "$SELECTED_MODULES" | grep -q "OpenClaw"; then
+    echo ""
+    if [[ -n "$DEPLOY_KEY_PUB" ]]; then
+      gum style --foreground 214 --bold "  ⚠ Add this deploy key to GitHub before starting OpenClaw:"
+      echo ""
+      echo "  $DEPLOY_KEY_PUB"
+      echo ""
+      gum style --foreground 244 "  github.com → repo → Settings → Deploy keys → Add"
+    fi
+    gum style --foreground 244 "  Start:        sudo systemctl start openclaw"
+    gum style --foreground 244 "  Logs:         journalctl -u openclaw -f"
   fi
 
-  gum style --foreground 244 "  SSH: ssh -p $SSH_PORT $MAIN_USER@<ip>"
-  gum style --foreground 244 "  Or via Tailscale: ssh $MAIN_USER@<tailscale-hostname>"
   echo ""
 }
 
