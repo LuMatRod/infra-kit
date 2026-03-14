@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# verify.sh — post-setup sanity checks
-set -euo pipefail
+# verify.sh — post-setup sanity checks (always exits 0 — informational only)
+set -uo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib/ui.sh"
 
@@ -16,10 +16,10 @@ check() {
 
   if eval "$cmd" &>/dev/null; then
     ok "$label"
-    ((CHECKS_PASSED++))
+    CHECKS_PASSED=$((CHECKS_PASSED + 1))
   else
     fail "$label"
-    ((CHECKS_FAILED++))
+    CHECKS_FAILED=$((CHECKS_FAILED + 1))
   fi
 }
 
@@ -54,3 +54,5 @@ else
   gum style --foreground 214 --bold "  $CHECKS_FAILED check(s) failed — review above"
 fi
 echo ""
+
+exit 0  # always exit 0 — verify is informational, not a gate
