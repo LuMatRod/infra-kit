@@ -66,6 +66,36 @@ OpenClaw runtime secrets live in a separate Doppler project (`openclaw`), inject
 
 Every module writes a marker to `/var/lib/infra-kit/<module>.done` on success. Re-running setup skips completed modules unless the marker is removed.
 
+## Post-setup checklist
+
+After `setup.sh` completes, a few manual steps remain:
+
+### 1. Add the deploy key to GitHub
+The setup prints a public key in the summary. Add it to the workspace repo:
+`github.com → repo → Settings → Deploy keys → Add deploy key` (read-only is fine).
+
+### 2. Auth OpenClaw to Anthropic (Claude subscription)
+On the new box, run as the main user:
+```bash
+claude setup-token    # generates a token tied to your Claude subscription
+openclaw models auth paste-token --provider anthropic
+```
+Without this, OpenClaw can't reach Anthropic models.
+
+### 3. Start OpenClaw
+```bash
+sudo systemctl start openclaw
+sudo journalctl -u openclaw -f   # watch logs
+```
+
+### 4. Verify Tailscale
+```bash
+tailscale status   # should show the box as connected
+```
+SSH into the box via Tailscale hostname to confirm: `ssh vini@<hostname>`
+
+---
+
 ## Adding a new module
 
 1. Create `modules/yourmodule.sh`

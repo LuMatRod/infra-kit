@@ -72,6 +72,15 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
+# Wire up doppler-resolver from workspace
+SCRIPTS_DIR="$HOME_DIR/.openclaw/scripts"
+mkdir -p "$SCRIPTS_DIR"
+if [[ -f "$WORKSPACE_DIR/scripts/doppler-resolver" ]]; then
+  cp "$WORKSPACE_DIR/scripts/doppler-resolver" "$SCRIPTS_DIR/doppler-resolver"
+  chmod +x "$SCRIPTS_DIR/doppler-resolver"
+  chown "$MAIN_USER:$MAIN_USER" "$SCRIPTS_DIR/doppler-resolver"
+fi
+
 systemctl daemon-reload
 systemctl enable openclaw
 
