@@ -42,6 +42,39 @@ MODULES="$SCRIPT_DIR/modules"
 source "$LIB/ui.sh"
 source "$LIB/util.sh"
 
+STATE_FILE="/tmp/infra-kit.state"
+
+save_state() {
+  cat > "$STATE_FILE" << EOF
+MAIN_USER="$MAIN_USER"
+SSH_PORT="$SSH_PORT"
+GITHUB_USER="$GITHUB_USER"
+TAILSCALE_AUTH_KEY="$TAILSCALE_AUTH_KEY"
+SELECTED_MODULES="$SELECTED_MODULES"
+WORKSPACE_MODE="$WORKSPACE_MODE"
+WORKSPACE_REPO="$WORKSPACE_REPO"
+DOPPLER_PROJECT="$DOPPLER_PROJECT"
+DOPPLER_CONFIG="$DOPPLER_CONFIG"
+DOPPLER_SERVICE_TOKEN="$DOPPLER_SERVICE_TOKEN"
+BOX_TYPE="$BOX_TYPE"
+EOF
+}
+
+load_state() {
+  if [[ -f "$STATE_FILE" ]]; then
+    echo ""
+    gum style --border rounded --padding "0 2" --border-foreground 39 \
+      "$(gum style --foreground 39 --bold 'Previous session found')" \
+      "$(gum style --foreground 244 "Box: $(grep BOX_TYPE $STATE_FILE | cut -d= -f2 | tr -d '\"')  User: $(grep ^MAIN_USER $STATE_FILE | cut -d= -f2 | tr -d '\"')")"
+    echo ""
+    if gum confirm "Resume with previous settings?"; then
+      source "$STATE_FILE"
+      return 0
+    fi
+  fi
+  return 1
+}
+
 # ─── Preflight ────────────────────────────────────────────────────────────────
 
 preflight() {
@@ -82,6 +115,9 @@ preflight() {
 # ─── Wizard ───────────────────────────────────────────────────────────────────
 
 wizard() {
+  # Try to resume from previous session
+  load_state && return 0
+
   # Box type
   BOX_TYPE=$(gum choose \
     --header "What kind of box is this?" \
@@ -217,6 +253,8 @@ wizard() {
 
   echo ""
   gum confirm "Run setup?" || die "Aborted."
+
+  save_state
 }
 
 # ─── Run ──────────────────────────────────────────────────────────────────────
@@ -298,3 +336,4 @@ preflight
 wizard
 run_setup
 summary
+rm -f "$STATE_FILE"
