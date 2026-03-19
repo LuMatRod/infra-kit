@@ -5,12 +5,13 @@
 set -euo pipefail
 
 # When piped via bash <(curl ...), BASH_SOURCE[0] is /dev/fd/NN — dirname is wrong.
-# Detect this and re-exec from a real clone instead.
+# Detect this and re-exec from a real tarball download (no git required).
 _src="${BASH_SOURCE[0]}"
 if [[ "$_src" == /dev/fd/* || "$_src" == /proc/self/* ]]; then
   _tmp="$(mktemp -d)"
-  git clone --depth 1 --quiet https://github.com/LuMatRod/infra-kit.git "$_tmp/infra-kit"
-  exec bash "$_tmp/infra-kit/setup.sh"
+  curl -sL https://github.com/LuMatRod/infra-kit/archive/refs/heads/main.tar.gz \
+    | tar -xz -C "$_tmp" --strip-components=1
+  exec bash "$_tmp/setup.sh"
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
