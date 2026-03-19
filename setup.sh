@@ -4,6 +4,15 @@
 #        bash <(curl -s https://raw.githubusercontent.com/LuMatRod/infra-kit/main/setup.sh)
 set -euo pipefail
 
+# When piped via bash <(curl ...), BASH_SOURCE[0] is /dev/fd/NN — dirname is wrong.
+# Detect this and re-exec from a real clone instead.
+_src="${BASH_SOURCE[0]}"
+if [[ "$_src" == /dev/fd/* || "$_src" == /proc/self/* ]]; then
+  _tmp="$(mktemp -d)"
+  git clone --depth 1 --quiet https://github.com/LuMatRod/infra-kit.git "$_tmp/infra-kit"
+  exec bash "$_tmp/infra-kit/setup.sh"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Bootstrap: gum + tmux must exist before anything else
