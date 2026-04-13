@@ -3,11 +3,16 @@
 set -euo pipefail
 
 SSH_PORT="${SSH_PORT:-2222}"
+BOX_TYPE="${BOX_TYPE:-}"
 
-# UFW — open only what's needed
+# UFW — SSH always open; 80/443 only for boxes with a public web surface
 ufw allow "$SSH_PORT/tcp"
-ufw allow 80/tcp
-ufw allow 443/tcp
+
+if [[ "$BOX_TYPE" == "App (Docker + Caddy)" || "$BOX_TYPE" == "OpenClaw" ]]; then
+    ufw allow 80/tcp
+    ufw allow 443/tcp
+fi
+
 ufw default deny incoming
 ufw default allow outgoing
 ufw --force enable

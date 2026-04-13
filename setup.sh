@@ -125,6 +125,27 @@ preflight() {
 # ─── Wizard ───────────────────────────────────────────────────────────────────
 
 wizard() {
+  # Non-interactive mode: if required vars are already set, skip the Gum wizard entirely.
+  # Usage: MAIN_USER=mimir SSH_PORT=2222 GITHUB_USER=pipa BOX_TYPE="General purpose" \
+  #        SELECTED_MODULES="Doppler CLI" DOPPLER_PROJECT=mimir DOPPLER_CONFIG=prd \
+  #        bash setup.sh
+  if [[ -n "${MAIN_USER:-}" && -n "${SSH_PORT:-}" && -n "${GITHUB_USER:-}" && \
+        -n "${BOX_TYPE:-}" && -n "${SELECTED_MODULES:-}" ]]; then
+    step "Non-interactive mode — using env vars"
+    WORKSPACE_MODE="${WORKSPACE_MODE:-}"
+    WORKSPACE_REPO="${WORKSPACE_REPO:-}"
+    DOPPLER_PROJECT="${DOPPLER_PROJECT:-infra-kit}"
+    DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
+    DOPPLER_SERVICE_TOKEN="${DOPPLER_SERVICE_TOKEN:-}"
+    if [[ -z "${TAILSCALE_AUTH_KEY:-}" ]]; then
+      TAILSCALE_AUTH_KEY=$(doppler secrets get TAILSCALE_AUTH_KEY \
+        --project "$DOPPLER_PROJECT" --config "$DOPPLER_CONFIG" --plain 2>/dev/null || true)
+    fi
+    ok "vars: user=$MAIN_USER port=$SSH_PORT box=$BOX_TYPE"
+    save_state
+    return 0
+  fi
+
   # Try to resume from previous session
   load_state && return 0
 
@@ -160,7 +181,7 @@ wizard() {
   step "Fetching secrets from Doppler (infra-kit)..."
 
   TAILSCALE_AUTH_KEY=$(doppler secrets get TAILSCALE_AUTH_KEY \
-    --project infra-kit --config prd --plain 2>/dev/null || true)
+    --project "${DOPPLER_PROJECT:-infra-kit}" --config "${DOPPLER_CONFIG:-prd}" --plain 2>/dev/null || true)
   if [[ -z "$TAILSCALE_AUTH_KEY" ]]; then
     TAILSCALE_AUTH_KEY=$(gum input \
       --password \

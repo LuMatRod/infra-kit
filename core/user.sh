@@ -4,6 +4,7 @@ set -euo pipefail
 
 MAIN_USER="${MAIN_USER:-vini}"
 GITHUB_USER="${GITHUB_USER:-}"
+EXTRA_SSH_KEYS="${EXTRA_SSH_KEYS:-}"
 
 # Create user if doesn't exist
 if ! id "$MAIN_USER" &>/dev/null; then
@@ -25,6 +26,12 @@ chmod 600 "/home/$MAIN_USER/.ssh/authorized_keys"
 if [[ -n "$GITHUB_USER" ]]; then
   curl -sf "https://github.com/${GITHUB_USER}.keys" \
     >> "/home/$MAIN_USER/.ssh/authorized_keys"
+fi
+
+# Append any extra public keys passed directly (e.g. new server-specific keys
+# not yet uploaded to GitHub)
+if [[ -n "$EXTRA_SSH_KEYS" ]]; then
+  echo "$EXTRA_SSH_KEYS" >> "/home/$MAIN_USER/.ssh/authorized_keys"
 fi
 
 chown -R "$MAIN_USER:$MAIN_USER" "/home/$MAIN_USER/.ssh"
